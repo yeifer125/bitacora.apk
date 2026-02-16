@@ -1,0 +1,26 @@
+<resources>
+    <!-- Nombre de la app -->
+    <string name="app_name">Bitacora</string>
+
+    <!-- Prompts y mensajes de IA -->
+    <string name="prompt_fertilization">Dame una recomendación de fertilización para esta planta: %1$s</string>
+    <string name="ai_loading">Cargando modelo, por favor espera...</string>
+    <string name="ai_no_response">La IA no generó respuesta.</string>
+    <string name="ai_error_consulting">⚠️ Error al consultar IA: %1$s</string>
+    <string name="error_unknown">desconocido</string>
+
+    <!-- UI de la pantalla de IA -->
+    <string name="ai_screen_title">💡 IA: Recomendación de fertilización</string>
+    <string name="ai_button_send">Enviar a IA</string>
+    <string name="ai_loading_ui">Generando recomendación...</string>
+    <string name="ai_recommendation_prefix">🌿 Recomendación:\n%1$s</string>
+    <string name="ai_toast_copied">Recomendación copiada</string>
+    <string name="ai_button_copy">Copiar recomendación</string>
+    <string name="ai_no_recommendation">No hay recomendación aún.</string>
+
+    <!-- Configuración de Google Gemini -->
+    <string name="gemini_api_key">AIzaSyAmDQ3L5Dylgs9lvrJpssBwu93OsfpUgjA</string>
+    <string name="openrouter_api_key">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</string> <!-- Mantenemos el nombre por compatibilidad temporal si es necesario -->
+    <string name="deepseek_api_key">sk-15d9ee5792e642c1b2d76d0ab2b35093</string>
+
+</resources>
