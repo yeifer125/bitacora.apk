@@ -9,5 +9,6 @@ data class PlantExpenseEntity(
     val plantId: Long,
     val date: Long = System.currentTimeMillis(),
     val amount: Float,
-    val note: String? = null
+    val note: String? = null,
+    val isExpense: Boolean = true // true = Gasto (-), false = Ganancia (+)
 )

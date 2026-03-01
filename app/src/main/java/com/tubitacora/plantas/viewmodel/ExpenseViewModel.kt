@@ -16,14 +16,27 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         return expenseDao.getExpensesForPlant(plantId)
     }
 
-    fun addExpense(plantId: Long, amount: Float, note: String?) {
+    fun addTransaction(plantId: Long, amount: Float, note: String?, isExpense: Boolean) {
         viewModelScope.launch {
             val expense = PlantExpenseEntity(
                 plantId = plantId,
                 amount = amount,
-                note = note
+                note = note,
+                isExpense = isExpense
             )
             expenseDao.insert(expense)
+        }
+    }
+
+    fun updateTransaction(expense: PlantExpenseEntity) {
+        viewModelScope.launch {
+            expenseDao.update(expense)
+        }
+    }
+
+    fun deleteTransaction(expense: PlantExpenseEntity) {
+        viewModelScope.launch {
+            expenseDao.delete(expense)
         }
     }
 }

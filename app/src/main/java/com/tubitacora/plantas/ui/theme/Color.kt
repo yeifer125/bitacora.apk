@@ -2,26 +2,39 @@ package com.tubitacora.plantas.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// -------------------- Colores Oscuros --------------------
-val Purple80 = Color(0xFF4F0FE7)
-val PurpleGrey80 = Color(0xFF5E15D2)
-val Pink80 = Color(0xFFEF084B)
+/**
+ * 🌿 PALETA PROFESIONAL "CYBER-FOREST"
+ * Una mezcla entre la naturaleza viva y la estética terminal hacker.
+ */
 
-// -------------------- Colores Claros --------------------
-val Purple40 = Color(0xFF45E808)
-val PurpleGrey40 = Color(0xFF625B71)
-val Pink40 = Color(0xFFD30F4F)
+// --- COLORES PRIMARIOS (Hacker Matrix) ---
+val GreenAccent = Color(0xFF00FF41)    // Verde Neón Terminal (Foco principal)
+val GreenDark = Color(0xFF003B00)      // Verde muy oscuro para fondos de botones
 
-// -------------------- Colores Personalizados --------------------
-val MyGreen = Color(0xFF4CAF50)
-val MyOrange = Color(0xFFFF9800)
-val MyRed = Color(0xFFF44336)
-val MyBlue = Color(0xFF2196F3)
+// --- COLORES DE NATURALEZA (Organic) ---
+val ForestGreen = Color(0xFF2E7D32)    // Verde bosque (Para elementos de plantas)
+val EarthBrown = Color(0xFF3E2723)     // Marrón tierra (Para contrastes orgánicos)
 
-val MyYellow = Color(0xFFFFEB3B)
-val MyGold = Color(0xE805E1E7)
+// --- COLORES DE SISTEMA (Retro Terminal) ---
+val TerminalBlack = Color(0xFF0A0A0A)  // Negro casi puro (Fondo principal)
+val TerminalGray = Color(0xFF1A1A1A)   // Gris oscuro (Para Cards y superficies)
+val PhosphorAmber = Color(0xFFFFB300)  // Ámbar clásico (Para advertencias o stats secundarios)
 
-val yei = Color(color = 0xFF2ADE16)
+// --- COLORES DE ESTADO ---
+val HackerRed = Color(0xFFFF3D00)      // Rojo vibrante (Errores/Peligros)
+val CyberBlue = Color(0xFF00E5FF)      // Azul cian (Para IA y datos meteorológicos)
 
-val yei2 = Color(0xFF0B30BE)
+// --- COMPATIBILIDAD MATERIAL 3 (Opcional pero recomendado) ---
+val Purple80 = GreenAccent
+val PurpleGrey80 = ForestGreen
+val Pink80 = CyberBlue
 
+val Purple40 = GreenDark
+val PurpleGrey40 = EarthBrown
+val Pink40 = HackerRed
+
+// Mantengo MyGreen por compatibilidad con tu código actual
+val MyGreen = ForestGreen
+val MyOrange = PhosphorAmber
+val MyRed = HackerRed
+val MyBlue = CyberBlue

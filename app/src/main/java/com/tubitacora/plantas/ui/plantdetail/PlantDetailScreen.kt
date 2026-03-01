@@ -36,16 +36,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.tubitacora.plantas.data.local.entity.PlantEntity
 import com.tubitacora.plantas.data.local.entity.PlantLogEntity
 import com.tubitacora.plantas.data.local.entity.PlantPhotoEntity
 import com.tubitacora.plantas.ui.theme.MyGreen
 import com.tubitacora.plantas.ui.theme.Purple40
 import com.tubitacora.plantas.viewmodel.LogViewModel
 import com.tubitacora.plantas.viewmodel.PlantPhotoViewModel
+import com.tubitacora.plantas.viewmodel.PlantViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 private val HeaderHeight = 300.dp
 
@@ -60,6 +64,7 @@ fun PlantDetailScreen(
     animatedContentScope: AnimatedContentScope,
     logViewModel: LogViewModel,
     photoViewModel: PlantPhotoViewModel,
+    plantViewModel: PlantViewModel = viewModel(),
     onBack: () -> Unit,
     onNavigateToLogs: () -> Unit,
     onNavigateToExpenses: () -> Unit,
@@ -68,8 +73,11 @@ fun PlantDetailScreen(
     val context = LocalContext.current
     val logs by logViewModel.getLogsForPlant(plantId).collectAsState(initial = emptyList())
     val photos by photoViewModel.getPhotosForPlant(plantId).collectAsState(initial = emptyList())
+    
+    val plants by plantViewModel.plants.collectAsState(initial = emptyList())
+    val currentPlant = plants.find { it.id == plantId }
+    
     val firstPhotoUri = photos.firstOrNull()?.uri ?: initialPhotoUri
-
     val lazyListState = rememberLazyListState()
 
     val headerHeightPx = with(LocalDensity.current) { HeaderHeight.toPx() }
@@ -78,6 +86,8 @@ fun PlantDetailScreen(
     val toolbarAlpha = remember {
         derivedStateOf { calculateToolbarAlpha(lazyListState, headerHeightPx, toolbarHeightPx) }
     }
+
+    var showEditDialog by remember { mutableStateOf(false) }
 
     with(sharedTransitionScope) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -89,7 +99,17 @@ fun PlantDetailScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 item { Spacer(modifier = Modifier.height(HeaderHeight)) }
-                item { PlantInfoCard(plantName, plantingDate, logs, context, onNavigateToAi, onNavigateToExpenses, onNavigateToLogs) }
+                item { 
+                    PlantInfoCard(
+                        plantName = currentPlant?.name ?: plantName,
+                        plantingDate = currentPlant?.plantingDate ?: plantingDate,
+                        logs = logs, 
+                        context = context, 
+                        onNavigateToAi = onNavigateToAi, 
+                        onNavigateToExpenses = onNavigateToExpenses, 
+                        onNavigateToLogs = onNavigateToLogs
+                    ) 
+                }
                 item { PhotoSection(plantId, photos, photoViewModel) }
                 item { NewLogSection(plantId, logViewModel) }
 
@@ -108,19 +128,40 @@ fun PlantDetailScreen(
                 }
             }
 
-            CollapsingToolbar(plantName, onBack, toolbarAlpha.value)
+            CollapsingToolbar(
+                title = currentPlant?.name ?: plantName, 
+                onBack = onBack, 
+                alpha = toolbarAlpha.value,
+                onEditClick = { showEditDialog = true }
+            )
         }
+    }
+
+    if (showEditDialog && currentPlant != null) {
+        EditPlantDialog(
+            plant = currentPlant,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { updatedPlant ->
+                plantViewModel.updatePlant(updatedPlant)
+                showEditDialog = false
+            }
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CollapsingToolbar(title: String, onBack: () -> Unit, alpha: Float) {
+private fun CollapsingToolbar(title: String, onBack: () -> Unit, alpha: Float, onEditClick: () -> Unit) {
     TopAppBar(
         title = { Text(title, modifier = Modifier.graphicsLayer { this.alpha = alpha }) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color.White)
+            }
+        },
+        actions = {
+            IconButton(onClick = onEditClick) {
+                Icon(Icons.Default.Edit, contentDescription = "Editar Planta", tint = Color.White)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -169,6 +210,37 @@ private fun SharedTransitionScope.CollapsingHeader(
     }
 }
 
+// ✅ FUNCIÓN PARA CALCULAR EDAD EN MESES Y DÍAS
+fun getPlantAge(plantingDate: Long): String {
+    val startCalendar = Calendar.getInstance().apply { timeInMillis = plantingDate }
+    val endCalendar = Calendar.getInstance()
+
+    var years = endCalendar.get(Calendar.YEAR) - startCalendar.get(Calendar.YEAR)
+    var months = endCalendar.get(Calendar.MONTH) - startCalendar.get(Calendar.MONTH)
+    var days = endCalendar.get(Calendar.DAY_OF_MONTH) - startCalendar.get(Calendar.DAY_OF_MONTH)
+
+    if (days < 0) {
+        months -= 1
+        val lastMonth = endCalendar.clone() as Calendar
+        lastMonth.add(Calendar.MONTH, -1)
+        days += lastMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+    }
+
+    if (months < 0) {
+        years -= 1
+        months += 12
+    }
+
+    val totalMonths = (years * 12) + months
+
+    return when {
+        totalMonths == 0 && days == 0 -> "Sembrada hoy"
+        totalMonths == 0 -> "$days día(s)"
+        days == 0 -> "$totalMonths mes(es)"
+        else -> "$totalMonths mes(es) y $days día(s)"
+    }
+}
+
 @Composable
 fun PlantInfoCard(
     plantName: String,
@@ -180,6 +252,8 @@ fun PlantInfoCard(
     onNavigateToLogs: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+    val plantAge = remember(plantingDate) { getPlantAge(plantingDate) }
+
     Surface(
         modifier = Modifier.fillMaxWidth().offset(y = (-24).dp),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -188,9 +262,25 @@ fun PlantInfoCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = plantName, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            
             Spacer(Modifier.height(4.dp))
-            Text(text = "Sembrada el ${dateFormat.format(Date(plantingDate))}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(8.dp))
+                Text(text = "Sembrada: ${dateFormat.format(Date(plantingDate))}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            
+            Spacer(Modifier.height(4.dp))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Timer, null, modifier = Modifier.size(16.dp), tint = MyGreen)
+                Spacer(Modifier.width(8.dp))
+                Text(text = "Tiempo transcurrido: $plantAge", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MyGreen)
+            }
+
             Spacer(Modifier.height(16.dp))
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                 ActionButton(icon = Icons.Default.AutoAwesome, label = "IA", onClick = onNavigateToAi)
                 ActionButton(icon = Icons.Default.PictureAsPdf, label = "PDF", onClick = { exportToHealthReport(context, plantName, plantingDate, logs) })
@@ -208,13 +298,10 @@ private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, 
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Box(
-            modifier = Modifier
-                .size(56.dp) 
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+            modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
         }
         Spacer(Modifier.height(4.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
@@ -233,9 +320,9 @@ fun PhotoSection(plantId: Long, photos: List<PlantPhotoEntity>, photoViewModel: 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Galería de Fotos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = {
-                createImageUri(context)?.let { uri -> tempPhotoUri = uri; cameraLauncher.launch(uri) }
-            }) { Icon(Icons.Default.CameraAlt, "Tomar foto") }
+            IconButton(onClick = { createImageUri(context)?.let { uri -> tempPhotoUri = uri; cameraLauncher.launch(uri) } }) {
+                Icon(Icons.Default.CameraAlt, "Tomar foto")
+            }
         }
         if (photos.isEmpty()) {
             Text("Aún no has añadido fotos.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
@@ -260,68 +347,40 @@ fun NewLogSection(plantId: Long, logViewModel: LogViewModel) {
     var logFertilizer by remember { mutableStateOf(false) }
     var fertilizerType by remember { mutableStateOf("") }
     var fertilizerDose by remember { mutableStateOf("") }
-
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        FilledTonalButton(
-            onClick = { expanded = !expanded }, 
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Icon(if (expanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
+        FilledTonalButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+            Icon(if (expanded) Icons.Default.Close else Icons.Default.Add, null)
             Spacer(Modifier.width(8.dp))
             Text("Añadir Nuevo Registro")
         }
         if (expanded) {
-            // ✅ Envoltura con Card para mejor visibilidad y diseño
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                elevation = CardDefaults.cardElevation(2.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = logNote, onValueChange = { logNote = it }, label = { Text("Nota / Observación") }, modifier = Modifier.fillMaxWidth())
-                    
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { logWatered = !logWatered }) {
                         Checkbox(checked = logWatered, onCheckedChange = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Regada") // Color heredado de la Card
+                        Spacer(Modifier.width(8.dp)); Text("Regada")
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { logGrowth = !logGrowth }) {
                         Checkbox(checked = logGrowth, onCheckedChange = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Crecimiento") // Color heredado de la Card
+                        Spacer(Modifier.width(8.dp)); Text("Crecimiento")
                     }
-                    if (logGrowth) {
-                        OutlinedTextField(value = growthValue, onValueChange = { growthValue = it }, label = { Text("Altura (cm)") }, modifier = Modifier.fillMaxWidth())
-                    }
+                    if (logGrowth) OutlinedTextField(value = growthValue, onValueChange = { growthValue = it }, label = { Text("Altura (cm)") }, modifier = Modifier.fillMaxWidth())
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { logFertilizer = !logFertilizer }) {
                         Checkbox(checked = logFertilizer, onCheckedChange = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Abono") // Color heredado de la Card
+                        Spacer(Modifier.width(8.dp)); Text("Abono")
                     }
                     if (logFertilizer) {
                         OutlinedTextField(value = fertilizerType, onValueChange = { fertilizerType = it }, label = { Text("Tipo de Abono") }, modifier = Modifier.fillMaxWidth())
                         OutlinedTextField(value = fertilizerDose, onValueChange = { fertilizerDose = it }, label = { Text("Dosis") }, modifier = Modifier.fillMaxWidth())
                     }
-                    Spacer(Modifier.height(16.dp))
                     Button(onClick = {
-                        logViewModel.addLog(
-                            plantId,
-                            logWatered,
-                            "NOTE",
-                            logNote.ifBlank { null },
-                            growthValue.toFloatOrNull() ?: 0f,
-                            if (logFertilizer) fertilizerType.ifBlank { null } else null,
-                            if (logFertilizer) fertilizerDose.ifBlank { null } else null
-                        )
+                        logViewModel.addLog(plantId, logWatered, "NOTE", logNote.ifBlank { null }, growthValue.toFloatOrNull() ?: 0f, if (logFertilizer) fertilizerType.ifBlank { null } else null, if (logFertilizer) fertilizerDose.ifBlank { null } else null)
                         expanded = false
                     }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.Save, contentDescription = "Guardar")
-                        Spacer(Modifier.width(8.dp))
-                        Text("Guardar Registro")
+                        Icon(Icons.Default.Save, null); Spacer(Modifier.width(8.dp)); Text("Guardar Registro")
                     }
                 }
             }
@@ -332,27 +391,59 @@ fun NewLogSection(plantId: Long, logViewModel: LogViewModel) {
 @Composable
 fun LogItemCard(log: PlantLogEntity) {
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(dateFormat.format(Date(log.date)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
             val details = mutableListOf<String>()
             if (log.watered) details.add("💧 Riego")
             if (log.heightCm > 0f) details.add("📈 Crecimiento: ${log.heightCm} cm")
             if (!log.fertilizerType.isNullOrBlank()) details.add("🌱 Abono: ${log.fertilizerType} (${log.fertilizerDose})")
             if (!log.note.isNullOrBlank()) details.add("📝 Nota: ${log.note}")
-
-            if (details.isEmpty()) Text("Sin detalles en este registro.")
-            else Text(details.joinToString(" • "), style = MaterialTheme.typography.bodyMedium)
+            Text(if (details.isEmpty()) "Sin detalles." else details.joinToString(" • "), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
-private fun calculateToolbarAlpha(
-    scrollState: androidx.compose.foundation.lazy.LazyListState,
-    headerHeightPx: Float,
-    toolbarHeightPx: Float
-): Float {
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditPlantDialog(plant: PlantEntity, onDismiss: () -> Unit, onConfirm: (PlantEntity) -> Unit) {
+    var name by remember { mutableStateOf(plant.name) }
+    var type by remember { mutableStateOf(plant.type) }
+    var selectedDate by remember { mutableStateOf(plant.plantingDate) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar Planta") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("Especie") }, modifier = Modifier.fillMaxWidth())
+                OutlinedCard(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Fecha de Siembra", style = MaterialTheme.typography.labelSmall)
+                            Text(dateFormat.format(Date(selectedDate)), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(plant.copy(name = name, type = type, plantingDate = selectedDate)) }) { Text("Guardar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+    if (showDatePicker) {
+        DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
+            TextButton(onClick = { selectedDate = datePickerState.selectedDateMillis ?: selectedDate; showDatePicker = false }) { Text("Aceptar") }
+        }) { DatePicker(state = datePickerState) }
+    }
+}
+
+private fun calculateToolbarAlpha(scrollState: androidx.compose.foundation.lazy.LazyListState, headerHeightPx: Float, toolbarHeightPx: Float): Float {
     return if (scrollState.firstVisibleItemIndex > 0) 1f
     else (scrollState.firstVisibleItemScrollOffset / (headerHeightPx - toolbarHeightPx)).coerceIn(0f, 1f)
 }
@@ -365,46 +456,16 @@ private fun createImageUri(context: Context): Uri? {
 private fun exportToHealthReport(context: Context, plantName: String, plantingDate: Long, logs: List<PlantLogEntity>) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val report = StringBuilder().apply {
-        append("📄 INFORME DE CULTIVO: $plantName\n")
-        append("-----------------------------------\n")
-        append("Fecha de siembra: ${dateFormat.format(Date(plantingDate))}\n\n")
-        append("--- Historial de Bitácora ---\n\n")
-
-        if (logs.isEmpty()) {
-            append("No hay registros en la bitácora para esta planta.\n")
-        } else {
-            logs.sortedBy { it.date }.forEach { log ->
-                append("• ${dateFormat.format(Date(log.date))}: ")
-                val details = mutableListOf<String>()
-                if (log.watered) details.add("💧 Riego")
-                if (log.heightCm > 0f) details.add("📈 Crecimiento: ${log.heightCm} cm")
-                if (!log.fertilizerType.isNullOrBlank()) {
-                    var fertilizerDetail = "🌱 Abono: ${log.fertilizerType}"
-                    if (!log.fertilizerDose.isNullOrBlank()) {
-                        fertilizerDetail += " (${log.fertilizerDose})"
-                    }
-                    details.add(fertilizerDetail)
-                }
-                if (!log.note.isNullOrBlank()) details.add("📝 Nota: '${log.note}'")
-
-                if (details.isNotEmpty()) {
-                    append(details.joinToString(" - "))
-                } else {
-                    append("Registro sin detalles.")
-                }
-                append("\n")
-            }
+        append("📄 INFORME: $plantName\nFecha siembra: ${dateFormat.format(Date(plantingDate))}\n\n")
+        logs.sortedBy { it.date }.forEach { log ->
+            append("• ${dateFormat.format(Date(log.date))}: ")
+            val d = mutableListOf<String>()
+            if (log.watered) d.add("💧 Riego")
+            if (log.heightCm > 0f) d.add("📈 ${log.heightCm}cm")
+            if (!log.fertilizerType.isNullOrBlank()) d.add("🌱 ${log.fertilizerType}")
+            if (!log.note.isNullOrBlank()) d.add("📝 '${log.note}'")
+            append(d.joinToString(" - ") + "\n")
         }
-        append("\n¡Gracias por cuidar de tus plantas! 💚")
     }.toString()
-
-    val sendIntent: Intent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_TEXT, report)
-        putExtra(Intent.EXTRA_SUBJECT, "Informe de Cultivo: $plantName")
-        type = "text/plain"
-    }
-
-    val shareIntent = Intent.createChooser(sendIntent, "Exportar Informe de Cultivo")
-    context.startActivity(shareIntent)
+    context.startActivity(Intent.createChooser(Intent().apply { action = Intent.ACTION_SEND; putExtra(Intent.EXTRA_TEXT, report); type = "text/plain" }, "Exportar"))
 }

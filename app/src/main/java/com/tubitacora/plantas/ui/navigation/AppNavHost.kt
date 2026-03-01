@@ -25,6 +25,7 @@ import com.tubitacora.plantas.ui.plantlogs.PlantLogsScreen
 import com.tubitacora.plantas.ui.settings.RiegoSettingsScreen
 import com.tubitacora.plantas.ui.stats.StatsScreen
 import com.tubitacora.plantas.ui.weather.WeatherScreen
+import com.tubitacora.plantas.ui.splash.SplashScreenHacker
 import com.tubitacora.plantas.viewmodel.LogViewModel
 import com.tubitacora.plantas.viewmodel.PlantPhotoViewModel
 import com.tubitacora.plantas.viewmodel.PlantViewModel
@@ -39,8 +40,16 @@ fun AppNavHost(
     SharedTransitionLayout {
         NavHost(
             navController = navController,
-            startDestination = NavRoutes.HOME
+            startDestination = NavRoutes.SPLASH // ✅ AHORA EMPIEZA EN EL SPLASH
         ) {
+            composable(NavRoutes.SPLASH) {
+                SplashScreenHacker(onTimeout = {
+                    navController.navigate(NavRoutes.HOME) {
+                        popUpTo(NavRoutes.SPLASH) { inclusive = true } // ✅ BORRA EL SPLASH DEL HISTORIAL
+                    }
+                })
+            }
+            
             homeNav(navController, plantViewModel, this@SharedTransitionLayout)
             addPlantNav(navController, plantViewModel)
             weatherNav(navController)
@@ -60,7 +69,7 @@ private fun NavGraphBuilder.homeNav(
     plantViewModel: PlantViewModel,
     sharedTransitionScope: SharedTransitionScope
 ) {
-    composable(NavRoutes.HOME) { // El receptor (this) es el AnimatedContentScope
+    composable(NavRoutes.HOME) { 
         val plants = plantViewModel.plants.collectAsState(initial = emptyList()).value
 
         HomeScreen(
@@ -81,7 +90,7 @@ private fun NavGraphBuilder.homeNav(
             onDeletePlant = { plant -> plantViewModel.deletePlant(plant) },
             onWaterPlant = { plantId -> plantViewModel.addWateringLog(plantId) },
             onNavigateToStats = { plantId -> navController.navigate("stats/$plantId") },
-            onNavigateToAi = { plant -> // ✅ AÑADIDO
+            onNavigateToAi = { plant ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("plant", plant)
                 navController.navigate(NavRoutes.AI_SCREEN)
             }
@@ -129,13 +138,17 @@ private fun NavGraphBuilder.plantDetailNav(navController: NavController, plantVi
     }
 }
 
-// --- Otras navegaciones (sin cambios) ---
-
 private fun NavGraphBuilder.addPlantNav(navController: NavController, plantViewModel: PlantViewModel) {
     composable(NavRoutes.ADD_PLANT) {
         AddPlantScreen(
-            onSave = { name, type, freq, notes ->
-                plantViewModel.insertPlant(PlantEntity(name = name, type = type, plantingDate = System.currentTimeMillis(), wateringFrequencyDays = freq, notes = notes))
+            onSave = { name, type, freq, date, notes ->
+                plantViewModel.insertPlant(PlantEntity(
+                    name = name, 
+                    type = type, 
+                    plantingDate = date, 
+                    wateringFrequencyDays = freq, 
+                    notes = notes
+                ))
                 navController.popBackStack()
             },
             onCancel = { navController.popBackStack() }

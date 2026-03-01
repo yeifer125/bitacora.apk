@@ -7,8 +7,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-
-// -------------------- Typography --------------------
+/**
+ * 🛠️ TIPOGRAFÍA HACKER-ORGANIC
+ * Usando la paleta Cyber-Forest para una legibilidad máxima en modo oscuro.
+ */
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,
@@ -16,21 +18,21 @@ val Typography = Typography(
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = (-0.25).sp,
-        color = Color.White
+        color = GreenAccent
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
-        color = Color.White
+        color = GreenAccent
     ),
     displaySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
-        color = Color.White
+        color = GreenAccent
     ),
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,
@@ -58,14 +60,14 @@ val Typography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        color = Color.White
+        color = GreenAccent // Títulos principales en verde hacker
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        color = MyGold // títulos de sección automáticamente oro
+        color = GreenAccent // ✅ CORREGIDO: MyGold reemplazado por GreenAccent
     ),
     titleSmall = TextStyle(
         fontFamily = FontFamily.Default,
@@ -79,7 +81,7 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        color = Color.White // texto normal
+        color = Color.White
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
@@ -93,7 +95,7 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        color = Color.White
+        color = Color.White.copy(alpha = 0.7f)
     ),
     labelLarge = TextStyle(
         fontFamily = FontFamily.Default,

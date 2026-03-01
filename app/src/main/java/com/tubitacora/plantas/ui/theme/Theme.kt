@@ -1,45 +1,49 @@
 package com.tubitacora.plantas.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// -------------------- Colores --------------------
+/**
+ * 🛠️ TEMA PROFESIONAL: CYBER-FOREST
+ * Aplicando la estética Hacker-Activista a toda la aplicación.
+ */
+
 private val DarkColorScheme = darkColorScheme(
-    primary = MyBlue,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = yei2,
-    surface = MyBlue,
-    onPrimary = MyGold,
-    onSecondary = MyGreen,
-    onTertiary = MyGold,
-    onBackground = MyGold,
-    onSurface = yei
+    primary = GreenAccent,         // El verde neón como color principal
+    onPrimary = Color.Black,       // Texto negro sobre botones verdes neón
+    secondary = ForestGreen,       // Verde orgánico para elementos secundarios
+    onSecondary = Color.White,
+    tertiary = CyberBlue,          // Cian para IA y clima
+    onTertiary = Color.Black,
+    background = TerminalBlack,    // Fondo negro profundo (OLED friendly)
+    surface = TerminalGray,        // Superficies de tarjetas en gris oscuro hacker
+    onBackground = Color.White,
+    onSurface = Color.White,
+    error = HackerRed,
+    onError = Color.White
 )
 
+// Aunque prefieras el modo oscuro, definimos un Light por estándares, 
+// usando tonos tierra y verdes claros.
 private val LightColorScheme = lightColorScheme(
-    primary = MyGreen,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = MyOrange,
-    surface = MyGold,
-    onPrimary = yei,
-    onSecondary = yei,
-    onTertiary = yei,
-    onBackground = MyOrange,
-    onSurface = MyOrange
+    primary = ForestGreen,
+    onPrimary = Color.White,
+    secondary = GreenDark,
+    background = Color(0xFFF1F8E9), // Verde muy claro casi blanco
+    surface = Color.White,
+    onBackground = Color.Black,
+    onSurface = Color.Black
 )
 
-// -------------------- Theme Composable --------------------
 @Composable
 fun BitacoraPlantasTheme(
-    darkTheme: Boolean = true,        // siempre oscuro
-    dynamicColor: Boolean = true,    // deshabilitamos colores dinámicos
+    darkTheme: Boolean = true, // Forzamos modo oscuro por estética fsociety
+    dynamicColor: Boolean = false, // Deshabilitamos dinámico para mantener la identidad visual
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    // Siempre usamos DarkColorScheme para mantener la estética Hacker
+    val colorScheme = DarkColorScheme 
 
     MaterialTheme(
         colorScheme = colorScheme,
@@ -48,45 +52,23 @@ fun BitacoraPlantasTheme(
     )
 }
 
-// -------------------- Colores para OutlinedTextField --------------------
+/**
+ * Colores personalizados para los campos de texto (TextFields)
+ * para que brillen con el verde neón hacker.
+ */
 @Composable
 fun outlinedFieldColors(): TextFieldColors {
     val colors = MaterialTheme.colorScheme
-    val alphaUnfocused = 0.5f
-    val alphaDisabled = 0.2f
-
+    
     return OutlinedTextFieldDefaults.colors(
-        // Texto
         focusedTextColor = colors.onBackground,
-        unfocusedTextColor = colors.onBackground.copy(alpha = alphaUnfocused),
-        disabledTextColor = colors.onBackground.copy(alpha = alphaDisabled),
-
-        // Contenedor
+        unfocusedTextColor = colors.onBackground.copy(alpha = 0.7f),
         focusedContainerColor = colors.surface,
         unfocusedContainerColor = colors.surface,
-        disabledContainerColor = colors.surface,
-
-        // Cursor
         cursorColor = colors.primary,
-        errorCursorColor = Color.Red,
-
-        // Bordes
-        focusedBorderColor = colors.primary,
-        unfocusedBorderColor = colors.onBackground.copy(alpha = alphaUnfocused),
-        disabledBorderColor = colors.onBackground.copy(alpha = alphaDisabled),
-        errorBorderColor = Color.Red,
-
-        // Labels
+        focusedBorderColor = colors.primary, // Borde verde neón al escribir
+        unfocusedBorderColor = colors.primary.copy(alpha = 0.4f),
         focusedLabelColor = colors.primary,
-        unfocusedLabelColor = colors.onBackground.copy(alpha = alphaUnfocused),
-        disabledLabelColor = colors.onBackground.copy(alpha = alphaDisabled),
-        errorLabelColor = Color.Red,
-
-        // Placeholder
-        focusedPlaceholderColor = colors.onBackground.copy(alpha = alphaUnfocused),
-        unfocusedPlaceholderColor = colors.onBackground.copy(alpha = alphaUnfocused),
-        disabledPlaceholderColor = colors.onBackground.copy(alpha = alphaDisabled),
-        errorPlaceholderColor = Color.Red
+        unfocusedLabelColor = colors.onBackground.copy(alpha = 0.7f)
     )
 }
-

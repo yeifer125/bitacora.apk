@@ -1,6 +1,7 @@
 package com.tubitacora.plantas.ui.navigation
 
 object NavRoutes {
+    const val SPLASH = "splash" // ✅ Nueva ruta inicial
     const val HOME = "home"
     const val ADD_PLANT = "add_plant"
     const val PLANT_DETAIL = "plant_detail"
@@ -9,5 +10,5 @@ object NavRoutes {
     const val PLANT_LOGS = "plant_logs"
     const val STATS = "stats"
     const val AI_SCREEN = "ai_screen"
-    const val EXPENSES = "expenses" // ✅ Nueva ruta para costos
+    const val EXPENSES = "expenses"
 }

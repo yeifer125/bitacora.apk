@@ -2,6 +2,7 @@ package com.tubitacora.plantas.ui.addplant
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Notes
@@ -13,12 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPlantScreen(
-    onSave: (String, String, Int, String?) -> Unit,
+    onSave: (String, String, Int, Long, String?) -> Unit, // ✅ Añadido Long para la fecha
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
@@ -26,6 +29,12 @@ fun AddPlantScreen(
     var frequencySlider by remember { mutableStateOf(7f) }
     var notes by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
+    
+    // --- Lógica de Fecha ---
+    var selectedDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -50,6 +59,7 @@ fun AddPlantScreen(
                             name,
                             type,
                             frequencySlider.roundToInt(),
+                            selectedDate,
                             notes.ifBlank { null }
                         )
                     }
@@ -91,7 +101,25 @@ fun AddPlantScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // ✅ NUEVO: Selector de Fecha de Siembra
+            OutlinedCard(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.CalendarToday, contentDescription = null)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Fecha de Siembra", style = MaterialTheme.typography.labelMedium)
+                        Text(dateFormat.format(Date(selectedDate)), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text("Frecuencia de Riego", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
             Text(
@@ -104,7 +132,7 @@ fun AddPlantScreen(
                 value = frequencySlider,
                 onValueChange = { frequencySlider = it },
                 valueRange = 1f..30f,
-                steps = 28 // 30-1-1 = 28
+                steps = 28
             )
 
             OutlinedTextField(
@@ -114,6 +142,24 @@ fun AddPlantScreen(
                 leadingIcon = { Icon(Icons.Default.Notes, null) },
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
+        }
+    }
+
+    // Diálogo del Selector de Fecha
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedDate = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                    showDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

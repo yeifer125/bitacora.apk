@@ -8,49 +8,41 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tubitacora.plantas.data.local.dao.*
 import com.tubitacora.plantas.data.local.entity.*
-import com.tubitacora.plantas.data.local.entity.PlantExpenseEntity
-import com.tubitacora.plantas.data.local.dao.PlantExpenseDao
 
 @Database(
     entities = [
         PlantEntity::class,
         LogEntity::class,
-        PlantLogEntity::class,      // ✅ ESTA ERA LA QUE FALTABA
+        PlantLogEntity::class,
         PlantPhotoEntity::class,
         WeatherDecisionEntity::class,
         PlantExpenseEntity::class
     ],
-    version = 5,                  // ⬆️ SUBIMOS VERSIÓN
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun plantDao(): PlantDao
-
     abstract fun plantExpenseDao(): PlantExpenseDao
-
     abstract fun plantPhotoDao(): PlantPhotoDao
     abstract fun weatherDecisionDao(): WeatherDecisionDao
+    abstract fun logDao(): LogDao // ✅ AHORA EL LOG DAO ESTÁ INTEGRADO PROFESIONALMENTE
 
     companion object {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        // -------- MIGRATION 2 → 3 --------
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    "ALTER TABLE plants ADD COLUMN lastWatered INTEGER NOT NULL DEFAULT 0"
-                )
+                database.execSQL("ALTER TABLE plants ADD COLUMN lastWatered INTEGER NOT NULL DEFAULT 0")
             }
         }
 
-        // -------- MIGRATION 3 → 4 (CLIMA) --------
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    """
+                database.execSQL("""
                     CREATE TABLE IF NOT EXISTS weather_decisions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         plantId INTEGER NOT NULL,
@@ -58,16 +50,13 @@ abstract class AppDatabase : RoomDatabase() {
                         shouldWater INTEGER NOT NULL,
                         conditionText TEXT NOT NULL
                     )
-                    """.trimIndent()
-                )
+                """.trimIndent())
             }
         }
 
-        // -------- MIGRATION 4 → 5 (PLANT LOGS) ✅ --------
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    """
+                database.execSQL("""
                     CREATE TABLE IF NOT EXISTS plant_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         plantId INTEGER NOT NULL,
@@ -75,7 +64,14 @@ abstract class AppDatabase : RoomDatabase() {
                         heightCm REAL,
                         notes TEXT
                     )
-                    """.trimIndent()
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE PlantExpenseEntity ADD COLUMN isExpense INTEGER NOT NULL DEFAULT 1"
                 )
             }
         }
@@ -90,7 +86,8 @@ abstract class AppDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3,
                         MIGRATION_3_4,
-                        MIGRATION_4_5      // ✅ NUEVA MIGRACIÓN
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
                     )
                     .build()
                     .also { INSTANCE = it }
