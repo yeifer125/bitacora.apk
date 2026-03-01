@@ -9,7 +9,7 @@ object RetrofitGoogleClient {
     private const val BASE_URL = "https://generativelanguage.googleapis.com/"
 
     // 🔑 ACTUALIZADO: Usando la llave que funcionó en tu curl
-    const val GEMINI_API_KEY = "AIzaSyBR2vYNlaAENUZVvyyva9kmgmmkQT5PZzI"
+    const val GEMINI_API_KEY = "#"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
